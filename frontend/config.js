@@ -1,3 +1,3 @@
 window.DEADLINEWISE_CONFIG = {
-  API_BASE_URL: "PASTE_YOUR_API_GATEWAY_URL_HERE"
+  API_BASE_URL: "https://1b3ldjhc87.execute-api.ap-southeast-1.amazonaws.com"
 };
