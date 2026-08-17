@@ -1,46 +1,49 @@
-# DeadlineWise: Netlify frontend + AWS backend
+# DeadlineWise multi-user AWS edition
 
-This replaces the Flask website deployment. Netlify hosts `frontend/`; API
-Gateway invokes `aws_backend/api_lambda.py`; the existing `DeadlineTasks` table
-and reminder Lambda/SNS/EventBridge continue working.
+Included: Cognito accounts; private per-student DynamoDB tasks; dashboard and explainable priorities; CRUD, progress, filters, notes and group work; separate monthly calendar; account-wide and per-task reminder controls; EventBridge checks; and private SES emails.
 
-## AWS API Lambda
+## 1. Cognito
 
-1. Lambda → Create function → Python 3.13 → `DeadlineWiseTaskAPI`.
-2. Paste `aws_backend/api_lambda.py` into `lambda_function.py`, then Deploy.
-3. Add environment variable `DYNAMODB_TABLE=DeadlineTasks`.
-4. Add the permissions in `api-lambda-policy.json` to its execution role after
-   replacing `YOUR_ACCOUNT_ID`.
+1. Go to **Amazon Cognito → User pools → Create user pool**.
+2. Use **Email** for sign-in and require `email` and `name`.
+3. Create a **public app client without a client secret**.
+4. Paste the User pool ID and App client ID into `frontend/config.js`.
 
-## API Gateway
+## 2. API Gateway JWT authorizer
 
-1. API Gateway → Create API → HTTP API → Build.
-2. Integration: Lambda → `DeadlineWiseTaskAPI`.
-3. Add route `$default` pointing to the Lambda integration, or add routes:
-   `GET /tasks`, `POST /tasks`, `PUT /tasks/{task_id}`,
-   `DELETE /tasks/{task_id}`, `POST /tasks/{task_id}/complete`, `GET /health`.
-4. Enable CORS: origin `*` initially; methods GET, POST, PUT, DELETE, OPTIONS;
-   header `Content-Type`.
-5. Deploy and copy the Invoke URL.
+Create a JWT authorizer on the existing HTTP API:
 
-## Connect the frontend
+- Issuer: `https://cognito-idp.ap-southeast-1.amazonaws.com/YOUR_USER_POOL_ID`
+- Audience: your Cognito app client ID
+- Identity source: `$request.header.Authorization`
 
-Open `frontend/config.js` and replace:
+Attach it to the `$default` route, or every `/tasks` and `/me` route. Keep `GET /health` public. CORS must allow `Authorization, Content-Type`; methods `GET, POST, PUT, DELETE, OPTIONS`; and your Netlify origin.
 
-```text
-PASTE_YOUR_API_GATEWAY_URL_HERE
+## 3. API Lambda
+
+Replace `DeadlineWiseTaskAPI` with `aws_backend/api_lambda.py` and deploy. Keep environment variables `DYNAMODB_TABLE=DeadlineTasks` and `ALLOWED_ORIGIN=https://YOUR-SITE.netlify.app`.
+
+The existing table can remain with String partition key `task_id`. Old tasks lack an owner and intentionally will not appear to signed-in students.
+
+## 4. Private reminders with SES
+
+SNS broadcasts to subscribers, so it is unsuitable for private multi-user reminders. This version uses SES.
+
+1. In **Amazon SES → Verified identities**, verify the sender email.
+2. In the SES sandbox, recipient emails must also be verified.
+3. Replace the reminder Lambda with `aws_backend/reminder_lambda.py`.
+4. Add `DYNAMODB_TABLE=DeadlineTasks` and `SES_FROM_EMAIL=your-verified@email.com`.
+5. Attach `aws_backend/reminder-policy.json` after replacing `YOUR_ACCOUNT_ID`.
+6. Keep the existing EventBridge schedule connected to the reminder Lambda.
+
+## 5. Publish
+
+Copy these files into the GitHub-connected repository, then run:
+
+```powershell
+git add -A
+git commit -m "Add calendar accounts and notification settings"
+git push
 ```
 
-with the Invoke URL, without a trailing slash. Commit and push.
-
-## Netlify
-
-1. Netlify → Add new project → Import an existing project → GitHub.
-2. Select the repository containing this project.
-3. Publish directory: `frontend`.
-4. Deploy. Netlify provides the public HTTPS URL.
-5. After deployment, set the API Lambda environment variable
-   `ALLOWED_ORIGIN` to the Netlify URL and update API Gateway CORS from `*` to
-   that URL.
-
-Never put AWS access keys in `config.js` or any frontend file.
+Netlify publishes `frontend/`. Test using two accounts: each must see only its own tasks. Also test notification off, per-task reminder off, calendar, CRUD, completion, logout and session expiry.

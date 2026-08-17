@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DeadlineWise</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="features.css">
 </head>
 <body>
-  <nav><a class="brand" href="#">DeadlineWise</a><button id="showForm" class="button">+ Add task</button></nav>
+  <nav><a class="brand" href="index.html">DeadlineWise</a><div class="nav-actions"><a class="nav-link active" href="index.html">Dashboard</a><a class="nav-link" href="calendar.html">Calendar</a><a class="nav-link" href="settings.html">Settings</a><button class="nav-link logout" onclick="DeadlineWiseAuth.logout()">Log out</button><button id="showForm" class="button">+ Add task</button></div></nav>
   <main>
     <div id="message" class="flash" hidden></div>
     <section class="hero"><p class="eyebrow">AWS-POWERED STUDENT PLANNER</p><h1>Know what to work on next.</h1><p>Explainable priorities based on urgency, progress, difficulty and grade weight.</p></section>
@@ -23,7 +23,10 @@
         <label>Module grade weight (%)<input type="number" id="gradeWeight" min="0" max="100" value="20" required></label>
         <label>Difficulty<select id="difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></label>
         <label>Progress (%)<input type="number" id="progress" min="0" max="100" value="0" required></label>
+        <label>Work type<select id="workMode"><option>Individual</option><option>Group</option></select></label>
         <label>Remind me<select id="reminderHours"><option value="24">24 hours before</option><option value="72">3 days before</option><option value="168">7 days before</option></select></label>
+        <label class="switch-row"><span><strong>Reminder for this task</strong><small>You can disable all emails in Settings.</small></span><input type="checkbox" id="reminderEnabled" checked></label>
+        <label class="full-field">Notes / next step<textarea id="description" rows="3" placeholder="Research sources, finish introduction…"></textarea></label>
         <button class="button submit" type="submit" id="saveButton">Save task to AWS</button>
       </form>
     </section>
@@ -40,6 +43,6 @@
     <p id="loading" class="empty">Loading tasks from AWS…</p>
     <section id="taskGrid" class="task-grid"></section>
   </main>
-  <script src="config.js"></script><script src="app.js"></script>
+  <script src="config.js"></script><script src="auth.js"></script><script src="app.js"></script>
 </body>
 </html>

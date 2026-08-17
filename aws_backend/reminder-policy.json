@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["dynamodb:Scan","dynamodb:GetItem","dynamodb:UpdateItem"],"Resource":"arn:aws:dynamodb:ap-southeast-1:YOUR_ACCOUNT_ID:table/DeadlineTasks"},{"Effect":"Allow","Action":"ses:SendEmail","Resource":"*"}]}
