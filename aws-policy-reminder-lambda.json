@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["dynamodb:Scan","dynamodb:UpdateItem"],"Resource":"arn:aws:dynamodb:ap-southeast-1:YOUR_ACCOUNT_ID:table/DeadlineTasks"},{"Effect":"Allow","Action":"sns:Publish","Resource":"YOUR_SNS_TOPIC_ARN"},{"Effect":"Allow","Action":["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"],"Resource":"*"}]}
