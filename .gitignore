@@ -1,9 +1,6 @@
-venv/
-.venv/
-__pycache__/
-*.pyc
 .env
 .aws/
-.vscode/
-.idea/
+venv/
+__pycache__/
+*.pyc
 *.csv

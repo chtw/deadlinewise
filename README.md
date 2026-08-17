@@ -1,78 +1,46 @@
-# DeadlineWise Complete
+# DeadlineWise: Netlify frontend + AWS backend
 
-For public deployment from GitHub, follow `DEPLOY_TO_APP_RUNNER.md`.
+This replaces the Flask website deployment. Netlify hosts `frontend/`; API
+Gateway invokes `aws_backend/api_lambda.py`; the existing `DeadlineTasks` table
+and reminder Lambda/SNS/EventBridge continue working.
 
-## Features
+## AWS API Lambda
 
-- DynamoDB CRUD: add, view, edit, complete and delete tasks
-- Countdown, overdue handling and colour-coded urgency
-- Explainable priority scores
-- Focus Next recommendation
-- Seven-day workload/clash detection
-- Module/type/status filters and sorting
-- Reminder preference per task
-- SNS reminder Lambda code with duplicate-reminder prevention
-- Responsive interface and `/health` AWS connection test
+1. Lambda → Create function → Python 3.13 → `DeadlineWiseTaskAPI`.
+2. Paste `aws_backend/api_lambda.py` into `lambda_function.py`, then Deploy.
+3. Add environment variable `DYNAMODB_TABLE=DeadlineTasks`.
+4. Add the permissions in `api-lambda-policy.json` to its execution role after
+   replacing `YOUR_ACCOUNT_ID`.
 
-## Run locally
+## API Gateway
 
-Open this folder in Cursor or VS Code, then run in PowerShell:
+1. API Gateway → Create API → HTTP API → Build.
+2. Integration: Lambda → `DeadlineWiseTaskAPI`.
+3. Add route `$default` pointing to the Lambda integration, or add routes:
+   `GET /tasks`, `POST /tasks`, `PUT /tasks/{task_id}`,
+   `DELETE /tasks/{task_id}`, `POST /tasks/{task_id}/complete`, `GET /health`.
+4. Enable CORS: origin `*` initially; methods GET, POST, PUT, DELETE, OPTIONS;
+   header `Content-Type`.
+5. Deploy and copy the Invoke URL.
 
-```powershell
-python -m venv venv
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-aws configure
-python app.py
+## Connect the frontend
+
+Open `frontend/config.js` and replace:
+
+```text
+PASTE_YOUR_API_GATEWAY_URL_HERE
 ```
 
-Open http://127.0.0.1:5000 and test http://127.0.0.1:5000/health.
+with the Invoke URL, without a trailing slash. Commit and push.
 
-## AWS checklist
+## Netlify
 
-### A. DynamoDB (required first)
+1. Netlify → Add new project → Import an existing project → GitHub.
+2. Select the repository containing this project.
+3. Publish directory: `frontend`.
+4. Deploy. Netlify provides the public HTTPS URL.
+5. After deployment, set the API Lambda environment variable
+   `ALLOWED_ORIGIN` to the Netlify URL and update API Gateway CORS from `*` to
+   that URL.
 
-1. Use region **Asia Pacific (Singapore)** (`ap-southeast-1`).
-2. DynamoDB → Tables → Create table.
-3. Table: `DeadlineTasks`.
-4. Partition key: `task_id`, type String. No sort key.
-5. Keep default settings.
-
-The local IAM user needs the actions in `aws-policy-local-app.json`. Replace
-`YOUR_ACCOUNT_ID` before using the custom policy. `AmazonDynamoDBFullAccess`
-also works for initial testing but is broader than required.
-
-### B. SNS email reminder
-
-1. SNS → Topics → Create topic → Standard.
-2. Name: `DeadlineWiseReminders`.
-3. Create subscription: Protocol `Email`; Endpoint: your email.
-4. Open the confirmation email and confirm the subscription.
-5. Copy the topic ARN.
-
-### C. Lambda reminder checker
-
-1. Lambda → Create function → Author from scratch.
-2. Name: `DeadlineWiseReminderChecker`; runtime Python 3.13.
-3. Paste `reminder_lambda.py` into `lambda_function.py` and deploy.
-4. Configuration → Environment variables:
-   - `DYNAMODB_TABLE` = `DeadlineTasks`
-   - `SNS_TOPIC_ARN` = the copied SNS topic ARN
-5. Add the permissions in `aws-policy-reminder-lambda.json` to Lambda's
-   execution role, replacing both placeholders.
-6. Use a test event `{}`. A task due inside its reminder period should send one
-   email and change `reminder_sent` to true in DynamoDB.
-
-### D. EventBridge Scheduler
-
-1. EventBridge Scheduler → Create schedule.
-2. Name: `DeadlineWiseHourlyReminder`.
-3. Recurring schedule: `rate(1 hour)`; flexible time window Off.
-4. Target: AWS Lambda Invoke; select `DeadlineWiseReminderChecker`.
-5. Let the console create a new execution role, then create the schedule.
-
-## Demo path
-
-Add task → verify DynamoDB item → show priority/countdown → show workload clash
-→ edit progress → trigger Lambda test → receive SNS email → complete task.
+Never put AWS access keys in `config.js` or any frontend file.
